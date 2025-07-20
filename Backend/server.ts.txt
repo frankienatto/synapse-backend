@@ -1,0 +1,132 @@
+import express from 'express';
+import cors from 'cors';
+import { db as initialDbState } from '../database';
+import * as geminiService from '../services/geminiService';
+import {
+    DBState,
+    Booking,
+    Room,
+    RoomStatus,
+    StaffTask,
+    TaskStatus,
+    Review,
+    Guest,
+    Transaction,
+    SaleItem,
+    Product,
+    Staff,
+    ChatConversation,
+    ChatMessage,
+    AdPlatform,
+    CampaignGoal,
+    AdCampaign,
+    CustomAudience,
+    Expense,
+    Block,
+    ScheduledPost,
+    AddOn,
+    SiteContent,
+    ThemeSettings,
+    PropertyInfo,
+    SocialConnection,
+    SocialMediaPlatform,
+    Project,
+    ShoppingListItem,
+    MediaAsset,
+    OTAPlatform,
+    PaymentGatewaySettings,
+    SubscriptionPlan,
+    RatePlan,
+    BookingRestriction,
+    AIConciergeMessage
+} from '../types';
+
+const app = express();
+const port = process.env.PORT || 3000;
+
+app.use(cors());
+app.use(express.json({ limit: '10mb' })); // Increase limit for images
+
+let db: DBState = JSON.parse(JSON.stringify(initialDbState));
+
+console.log("Backend server started with initial state.");
+
+app.get('/api/initial-data', (req, res) => {
+    res.json({
+        db,
+        chat: { conversations: db.chatConversations, messages: db.chatMessages },
+        notifications: []
+    });
+});
+
+app.post('/api/auth/login', (req, res) => {
+    const { email, pass } = req.body;
+    const staffUser = db.staff.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === pass);
+    if (staffUser) return res.json({ user: staffUser, token: `staff-token-${staffUser.id}` });
+    
+    const guestUser = db.guests.find(u => u.email.toLowerCase() === email.toLowerCase() && (u.password === pass || u.cpf === pass));
+    if (guestUser) return res.json({ user: guestUser, token: `guest-token-${guestUser.id}` });
+    
+    res.status(401).json({ message: "Email ou senha inválidos." });
+});
+
+// Simple CRUD wrappers (for demonstration)
+const setupCrud = (resource: keyof DBState) => {
+    const path = `/api/${resource}`;
+    
+    app.get(path, (req, res) => res.json((db as any)[resource]));
+    
+    app.post(path, (req, res) => {
+        const newItem = { id: `${resource.slice(0, 3)}${Date.now()}`, ...req.body };
+        (db as any)[resource].push(newItem);
+        res.status(201).json(newItem);
+    });
+
+    app.put(`${path}/:id`, (req, res) => {
+        const { id } = req.params;
+        const collection = (db as any)[resource] as any[];
+        const index = collection.findIndex(item => item.id == id);
+        if (index > -1) {
+            collection[index] = { ...collection[index], ...req.body };
+            res.json(collection[index]);
+        } else {
+            res.status(404).json({ message: 'Not found' });
+        }
+    });
+    
+    app.delete(`${path}/:id`, (req, res) => {
+        const { id } = req.params;
+        const initialLength = ((db as any)[resource] as any[]).length;
+        (db as any)[resource] = ((db as any)[resource] as any[]).filter(item => item.id != id);
+        if (((db as any)[resource] as any[]).length < initialLength) {
+            res.status(204).send();
+        } else {
+            res.status(404).json({ message: 'Not found' });
+        }
+    });
+};
+
+// Setting up CRUD for some resources as an example
+['guests', 'staff', 'bookings', 'rooms', 'products', 'tasks', 'expenses'].forEach(res => setupCrud(res as keyof DBState));
+
+// AI Endpoints
+const setupAiEndpoint = (path: string, handler: (body: any) => Promise<any>) => {
+    app.post(path, async (req, res) => {
+        try {
+            const result = await handler(req.body);
+            res.json(result);
+        } catch (error: any) {
+            console.error(`Error at ${path}:`, error);
+            res.status(500).json({ message: error.message || 'AI service error' });
+        }
+    });
+};
+
+setupAiEndpoint('/api/ai/generate-image', (body) => geminiService.generateImage(body.prompt, body.aspectRatio));
+setupAiEndpoint('/api/ai/generate-video', (body) => geminiService.generateVideo(body.prompt, body.duration, body.aspectRatio));
+setupAiEndpoint('/api/ai/daily-briefing', () => geminiService.generateDailyBriefing(db));
+// ... Add all other geminiService endpoints here following the pattern
+
+app.listen(port, () => {
+    console.log(`Backend listening at http://localhost:${port}`);
+});
