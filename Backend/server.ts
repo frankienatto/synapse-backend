@@ -171,10 +171,10 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
 // --- API Endpoints ---
-app.get('/api/initial-data', (req: Request, res: Response) => {
+app.get('/initial-data', (req: Request, res: Response) => {
     res.json({ db, chat: { conversations: db.chatConversations, messages: db.chatMessages }, notifications: [] });
 });
-app.post('/api/auth/login', (req: Request, res: Response) => {
+app.post('/auth/login', (req: Request, res: Response) => {
     const { email, pass } = req.body;
     const staffUser = db.staff.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === pass);
     if (staffUser) return res.json({ user: staffUser, token: `staff-token-${staffUser.id}` });
@@ -182,14 +182,14 @@ app.post('/api/auth/login', (req: Request, res: Response) => {
     if (guestUser) return res.json({ user: guestUser, token: `guest-token-${guestUser.id}` });
     res.status(401).json({ message: "Email ou senha inválidos." });
 });
-app.put('/api/rooms/:id/status', (req: Request, res: Response) => {
+app.put('/rooms/:id/status', (req: Request, res: Response) => {
     const { id } = req.params;
     const { status } = req.body;
     const room = db.rooms.find(r => r.id === parseInt(id));
     if (room) { room.status = status as RoomStatus; res.status(200).json(room); } 
     else { res.status(404).send('Room not found'); }
 });
-app.post('/api/bookings/new-guest', (req: Request, res: Response) => {
+app.post('/bookings/new-guest', (req: Request, res: Response) => {
     const { booking, guest: guestData } = req.body;
     const newGuest: Guest = { id: `G${Date.now()}`, ...guestData };
     db.guests.push(newGuest);
@@ -203,15 +203,15 @@ const handleAiRequest = async (handler: () => Promise<any>, res: Response) => {
     catch (error: any) { console.error("AI handler error:", error); res.status(500).json({ message: error.message || "AI service error" }); }
 };
 // AI routes
-app.post('/api/ai/daily-briefing', (req: Request, res: Response) => handleAiRequest(() => generateDailyBriefing(db), res));
-app.post('/api/ai/generate-image', (req: Request, res: Response) => handleAiRequest(() => generateImage(req.body.prompt, req.body.aspectRatio), res));
-app.post('/api/ai/concierge/:guestId/message', (req: Request, res: Response) => handleAiRequest(() => sendConciergeMessage(req.params.guestId, req.body.message, db), res));
+app.post('/ai/daily-briefing', (req: Request, res: Response) => handleAiRequest(() => generateDailyBriefing(db), res));
+app.post('/ai/generate-image', (req: Request, res: Response) => handleAiRequest(() => generateImage(req.body.prompt, req.body.aspectRatio), res));
+app.post('/ai/concierge/:guestId/message', (req: Request, res: Response) => handleAiRequest(() => sendConciergeMessage(req.params.guestId, req.body.message, db), res));
 // Add all other AI endpoints here...
 
 // --- Add other simple endpoints ---
 // Simple CRUD operations can be added here as needed for functionality.
 // Example:
-app.post('/api/reviews/:id/approve', (req, res) => {
+app.post('/reviews/:id/approve', (req, res) => {
     const review = db.reviews.find(r => r.id === req.params.id);
     if(review) {
         review.status = 'Approved';
