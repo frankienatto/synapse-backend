@@ -1,4 +1,5 @@
 
+
 import express from 'express';
 import cors from 'cors';
 import { GoogleGenAI, Type } from "@google/genai";
@@ -834,9 +835,9 @@ const getAi = () => {
 
 const generateDailyBriefing = async (dbState: DBState): Promise<any> => {
     const ai = getAi();
-    if (!ai) return { summary: { title: "Briefing Simulado", points: ["Backend está online!", "Chave de API não encontrada."] } };
+    if (!ai) return { summary: { title: "Briefing Simulado", points: ["Backend está online!", "Chave de API não encontrada."] }, attentionPoints: { title: "Atenção", points: [] }, proactiveSuggestions: { title: "Sugestões", points: [] } };
     // The actual prompt and logic would be here
-    return { summary: { title: "Briefing da IA", points: ["Esta é uma resposta real da IA!"] } };
+    return { summary: { title: "Briefing da IA", points: ["Esta é uma resposta real da IA!"] }, attentionPoints: { title: "Atenção", points: [] }, proactiveSuggestions: { title: "Sugestões", points: [] } };
 };
 
 const generateImage = async (prompt: string, aspectRatio: string): Promise<{ base64Image: string } | null> => {
@@ -874,11 +875,11 @@ let db: DBState = JSON.parse(JSON.stringify(initialDbState)); // Use a deep copy
 console.log("Backend server started with initial state.");
 
 // --- API Endpoints ---
-app.get('/api/initial-data', (req, res) => {
+app.get('/initial-data', (req, res) => {
     res.json({ db, chat: { conversations: db.chatConversations, messages: db.chatMessages }, notifications: [] });
 });
 
-app.post('/api/auth/login', (req, res) => {
+app.post('/auth/login', (req, res) => {
     const { email, pass } = req.body;
     const staffUser = db.staff.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === pass);
     if (staffUser) return res.json({ user: staffUser, token: `staff-token-${staffUser.id}` });
@@ -887,7 +888,7 @@ app.post('/api/auth/login', (req, res) => {
     res.status(401).json({ message: "Email ou senha inválidos." });
 });
 
-app.put('/api/rooms/:id/status', (req, res) => {
+app.put('/rooms/:id/status', (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
     const room = db.rooms.find(r => r.id === parseInt(id));
@@ -901,7 +902,7 @@ app.put('/api/rooms/:id/status', (req, res) => {
 
 
 // ... (All other specific and AI endpoints would be defined here) ...
-app.post('/api/ai/daily-briefing', async (req, res) => {
+app.post('/ai/daily-briefing', async (req, res) => {
     try {
         const briefing = await generateDailyBriefing(db);
         res.json(briefing);
@@ -910,7 +911,7 @@ app.post('/api/ai/daily-briefing', async (req, res) => {
     }
 });
 
-app.post('/api/ai/generate-image', async (req, res) => {
+app.post('/ai/generate-image', async (req, res) => {
     const { prompt, aspectRatio } = req.body;
     try {
         const result = await generateImage(prompt, aspectRatio);
@@ -920,24 +921,25 @@ app.post('/api/ai/generate-image', async (req, res) => {
     }
 });
 
-app.post('/api/ai/optimize-campaign', async (req, res) => res.json({
+// Mocked endpoints for completeness
+app.post('/ai/optimize-campaign', async (req, res) => res.json({
     copyOptimization: { justification: 'Mock justification', newHeadlines: ['Mock Headline'], newDescriptions: ['Mock Description'] },
     audienceDiscovery: { nicheInterests: ['Mock Interest'], lookalikeSuggestions: ['Mock Lookalike'] },
     automatedRules: [{ ruleCondition: 'Mock Condition', ruleAction: 'Mock Action' }]
 }));
-app.post('/api/ai/analyze-market-seo', async (req, res) => res.json({
+app.post('/ai/analyze-market-seo', async (req, res) => res.json({
     trafficSources: [{source: 'Mock', percentage: 100}], topKeywords: ['mock'], audienceProfile: 'mock', seoOpportunities: ['mock']
 }));
-app.post('/api/ai/spy-competitor-ads', async (req, res) => res.json({
+app.post('/ai/spy-competitor-ads', async (req, res) => res.json({
     strategy: 'mock strategy', exampleAds: [{headline: 'mock', description: 'mock', creativeDescription: 'mock'}], counterStrategy: ['mock']
 }));
-app.post('/api/ai/generate-creative-asset', async (req, res) => res.json({
+app.post('/ai/generate-creative-asset', async (req, res) => res.json({
     assetType: 'Imagem', imagePrompt: 'mock', textOverlays: ['mock']
 }));
-app.post('/api/ai/get-growth-hacks', async (req, res) => res.json({
+app.post('/ai/get-growth-hacks', async (req, res) => res.json({
     hacks: [{title: 'mock', description: 'mock', difficulty: 'Fácil'}]
 }));
-app.post('/api/ai/post-from-review', async (req, res) => res.json({
+app.post('/ai/post-from-review', async (req, res) => res.json({
     postText: 'mock post', imageSuggestion: 'mock image suggestion'
 }));
 
