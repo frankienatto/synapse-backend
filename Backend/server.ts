@@ -1,11 +1,12 @@
 
-import express from 'express';
-import type { Request, Response } from 'express';
+import express, { Request, Response } from 'express';
 import cors from 'cors';
 import { GoogleGenAI, Type } from "@google/genai";
 
 // --- TYPES ---
-// All type definitions are now included directly in this file.
+// All type definitions are now included directly in this file
+// to ensure the backend is a self-contained module.
+
 export interface Facility { id: string; icon: string; name: string; description: string; }
 export interface Project { id: string; name: string; description: string; status: 'Ativo' | 'Concluído' | 'Arquivado'; ownerId: string; taskIds: string[]; createdAt: string; }
 export type SiteContent = { hero: { title: string; subtitle: string; imageUrl: string; }; whyUs: { title:string; subtitle: string; items: { icon: string; title: string; text: string; }[]; }; about: { title: string; text1: string; text2: string; imageUrls: string[]; }; experiences: { title: string; items: { title: string; description: string; imageUrl: string; }[]; }; facilities: Facility[]; cta: { title: string; subtitle: string; buttonText: string; } }
@@ -75,7 +76,7 @@ export interface DailyBriefing { summary: { title: string; points: string[]; }; 
 export interface DBState { properties: PropertyInfo[]; currentPropertyId: string; subscriptionPlans: SubscriptionPlan[]; rooms: Room[]; guests: Guest[]; bookings: Booking[]; reviews: Review[]; products: Product[]; transactions: Transaction[]; staff: Staff[]; staffTasks: StaffTask[]; chatConversations: ChatConversation[]; chatMessages: ChatMessage[]; adCampaigns: AdCampaign[]; platformConnections: { platform: AdPlatform; connected: boolean; accountName: string | null; accountId: string | null; }[]; socialConnections: SocialConnection[]; customAudiences: CustomAudience[]; expenses: Expense[]; addOns: AddOn[]; ratePlans: RatePlan[]; propertyEvents: PropertyEvent[]; localGuideTips: LocalGuideTip[]; blocks: Block[]; bookingRestrictions: BookingRestriction[]; otaConnections: OTAConnection[]; scheduledPosts: ScheduledPost[]; sharedSpaces: { livingRoomTV: { isOn: boolean; volume: number; currentApp: 'Netflix' | 'YouTube' | 'TV Aberta' | null; } }; guestActivities: GuestActivity[]; activityParticipants: { activityId: string; guestId: string; guestName: string; }[]; activityComments: { id: string; activityId: string; guestId: string; guestName: string; text: string; timestamp: string; }[]; activityContributions: { activityId: string; guestId: string; amount: number; }[]; siteContent: SiteContent; themeSettings: ThemeSettings; publishedWorkSchedule: any | null; staffPerformanceReviews: Record<string, any>; onboardingPlans: Record<string, any>; aiEngagementAgent: AIEngagementAgent; projects: Project[]; shoppingLists: ShoppingList[]; mediaLibrary: MediaAsset[]; campaignContext: CampaignContext | null; managementReport?: ManagementReport | null; achievements: Achievement[]; rewards: Reward[]; guestPosts: GuestPost[]; loyaltyLevels: LoyaltyLevel[]; checkIns: CheckIn[]; synapseChatHistory: SynapseMessage[]; guestJourneys: GuestJourney[]; }
 
 // --- DATABASE ---
-const db: DBState = {
+let db: DBState = {
     currentPropertyId: 'P01',
     properties: [ { id: 'P01', name: 'Forest Beach House', address: 'Rua das Gaivotas, 123, Florianópolis, SC', cnpj: '12.345.678/0001-90', phone: '(48) 99999-8888', email: 'contato@forestbeachhouse.com', checkInTime: '14:00', checkOutTime: '11:00', wifiNetwork: 'ForestHouse_Guest', wifiPass: 'natureza123', rules: [], planId: 'PLAN_ENTERPRISE', subscriptionStatus: 'Ativa', paymentGatewaySettings: { stripe: { connected: false, publicKey: '', secretKey: '' }, mercadoPago: { connected: false, publicKey: '', accessToken: '' }, }, } ],
     subscriptionPlans: [ { id: 'PLAN_BASIC', name: 'Básico', price: 299, description: 'Essencial para começar.', features: ['dashboard', 'calendar', 'rooms', 'bookings', 'guests', 'pos', 'reports'] }, { id: 'PLAN_PRO', name: 'Profissional', price: 599, description: 'Ferramentas avançadas para crescer.', features: ['dashboard', 'calendar', 'rooms', 'bookings', 'guests', 'pos', 'reports', 'staff', 'financial_manager', 'inventory', 'social_media', 'omni_channel', 'internal_chat', 'property_settings', 'projects', 'rate_manager', 'channel_manager'] }, { id: 'PLAN_ENTERPRISE', name: 'Synapse AI Enterprise', price: 999, description: 'O poder total da IA para dominar o mercado.', features: ['dashboard', 'calendar', 'rooms', 'bookings', 'guests', 'staff', 'team_manager_ai', 'pos', 'financial_manager', 'inventory', 'shopping_list', 'social_media', 'ad_campaign_manager', 'reports', 'omni_channel', 'internal_chat', 'marketing_mix_ai', 'ai_marketing_lab', 'creative_studio', 'ai_strategy_consultant', 'property_settings', 'projects', 'ai_engagement_agent', 'marketing_orchestrator', 'management_center', 'synapse_agent', 'rate_manager', 'channel_manager', 'guest_journey_ai'] }, ],
@@ -107,63 +108,10 @@ const getAi = () => {
   return new GoogleGenAI({ apiKey: process.env.API_KEY });
 };
 const mockResponse = (data: any) => { console.log("Using mocked AI response."); return data; }
-export const generateImage = async (prompt: string, aspectRatio: string): Promise<{ base64Image: string } | null> => {
-    const ai = getAi();
-    if (!ai) return mockResponse(null);
-    try {
-        const response = await ai.models.generateImages({ model: 'imagen-3.0-generate-002', prompt: prompt, config: { numberOfImages: 1, aspectRatio: aspectRatio as any, outputMimeType: 'image/png' }, });
-        if (response.generatedImages && response.generatedImages.length > 0) { return { base64Image: response.generatedImages[0].image.imageBytes }; }
-        return null;
-    } catch (error) { console.error("Error generating image in backend:", error); throw new Error("Failed to generate image."); }
-};
-export const generateDailyBriefing = async (dbState: DBState): Promise<DailyBriefing> => {
-    const ai = getAi();
-    if (!ai) return mockResponse({ summary: { title: "Briefing Simulado", points: ["Backend online, API Key ausente."] }, attentionPoints: { title: "Atenção", points: [] }, proactiveSuggestions: { title: "Sugestões", points: [] } });
-    const response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: "Gere um briefing diário para um gerente de hostel. Inclua um resumo, pontos de atenção e sugestões proativas. A resposta deve ser em JSON." });
-    return JSON.parse(response.text.replace(/```json|```/g, ''));
-};
-export const generateBusinessDiagnosis = async (dbState: DBState): Promise<BusinessDiagnosis> => mockResponse({ keyInsights: [], crossModuleCorrelations: [], warnings: [] });
-export const generateMarketingMixPlan = async (objective: string, budget: number, period: string): Promise<MarketingMixPlan> => mockResponse({ strategicVision: 'Mock vision', budgetSplit: [], phases: [], keyMetrics: [], creativeGuidelines: '' });
-export const sendConciergeMessage = async (guestId: string, message: string, db: DBState): Promise<AIConciergeMessage> => {
-    const ai = getAi();
-    const guest = db.guests.find(g => g.id === guestId);
-    if (!guest) throw new Error("Guest not found");
-    const userMessage: AIConciergeMessage = { id: `msg_${Date.now()}`, sender: 'user', text: message, timestamp: new Date().toISOString() };
-    guest.conciergeChatHistory = [...(guest.conciergeChatHistory || []), userMessage];
-    if (!ai) { const mockReply: AIConciergeMessage = { id: `msg_${Date.now()}_agent`, sender: 'agent', text: "Desculpe, meu cérebro está offline (API Key não configurada).", timestamp: new Date().toISOString() }; guest.conciergeChatHistory.push(mockReply); return mockReply; }
-    const response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: `O hóspede disse: "${message}". Responda como um concierge de hostel amigável.` });
-    const agentReply: AIConciergeMessage = { id: `msg_${Date.now()}_agent`, sender: 'agent', text: response.text, timestamp: new Date().toISOString() };
-    guest.conciergeChatHistory.push(agentReply);
-    return agentReply;
-};
-// Other AI function mocks/placeholders...
-export const generateVideo = async (prompt: string, duration: number, aspectRatio: string): Promise<{ videoUrl: string }> => mockResponse({ videoUrl: 'https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4' });
-export const generateSocialMediaPost = async (platform: string, topic: string, context: string): Promise<{ postText: string; imageSuggestion: string }> => mockResponse({ postText: `Post incrível sobre ${topic} no ${platform}!`, imageSuggestion: `Uma foto vibrante de ${topic}.` });
-export const generateAdCampaign = async (platform: string, goal: string, context: string): Promise<any> => mockResponse({ campaignName: `Campanha de ${goal}`, adCopy: { headlines: ['Título Gerado pela IA'], descriptions: ['Descrição gerada pela IA.'] }, targeting: { keywords: ['hostel', 'viagem'] }, creativeSuggestion: 'Usar imagem de pessoas felizes na praia.', budget: { dailyAmount: 50, justification: 'Orçamento inicial recomendado.' } });
-export const generateDeepCampaignOptimization = async (campaign: AdCampaign): Promise<any> => mockResponse({ copyOptimization: {}, audienceDiscovery: {}, automatedRules: [] });
-export const analyzeAdCreative = async (imageBase64: string, mimeType: string): Promise<any> => mockResponse({ strengths: ['Boa iluminação'], weaknesses: ['Texto pequeno'], suggestions: ['Aumentar o logo'] });
-export const spyOnCompetitor = async (competitorName: string): Promise<any> => mockResponse({});
-export const detectCampaignAnomalies = async (campaigns: AdCampaign[]): Promise<any> => mockResponse({ anomalies: [] });
-export const generateCampaignsFromPhase = async (phase: any, plan: any, budget: number): Promise<{ campaigns: any[] }> => mockResponse({ campaigns: [] });
-export const analyzeCampaignPerformance = async (adSet: any, campaign: any): Promise<CampaignPerformanceAnalysis> => mockResponse({ summary: { performanceLevel: 'Bom', text: 'Ok' }, insights: [], recommendations: [] });
-export const analyzeMarketAndSEO = async (domain: string): Promise<any> => mockResponse({});
-export const spyOnCompetitorAds = async (competitor: string): Promise<any> => mockResponse({});
-export const generateCreativeAsset = async (assetType: 'Imagem' | 'Vídeo', topic: string): Promise<any> => mockResponse({});
-export const getGrowthHacks = async (question: string): Promise<any> => mockResponse({});
-export const generatePostFromReview = async (comment: string, guestName: string): Promise<{ postText: string, imageSuggestion: string }> => mockResponse({ postText: `Obrigado, ${guestName}!`, imageSuggestion: 'Foto do hostel' });
-export const generateWorkSchedule = async (staff: Staff[], constraints: string): Promise<any> => mockResponse({ schedule: [] });
-export const generateOnboardingPlan = async (employeeName: string, employeeRole: string, existingStaff: Staff[]): Promise<any> => mockResponse({ plan: [] });
-export const analyzeTeamPerformance = async (tasks: StaffTask[], staff: Staff[], targetStaffId?: string): Promise<any> => mockResponse({ summary: 'Todos são ótimos', strengths: [], suggestions: [] });
-export const calculateBreakevenPoint = async (totalFixedCosts: number, avgRevenuePerGuest: number, variableCostPerGuest: number): Promise<any> => mockResponse({ breakevenOccupancyRate: 42, monthlyRevenueTarget: 10000, analysis: 'Análise mockada.' });
-export const runFinancialScenario = async (scenario: string, totalFixedCosts: number, avgRevenuePerGuest: number, variableCostPerGuest: number): Promise<any> => mockResponse({ scenario, impactAnalysis: { profitChange: 'aumento', revenueChange: 'aumento' }, recommendations: [], potentialRisks: [] });
-export const generateProfitabilityPlan = async (dbState: DBState): Promise<any> => mockResponse({ pricingSuggestions: [], packageDeals: [] });
-export const simulateExpansion = async (query: string, dbState: DBState): Promise<any> => mockResponse({ simulationSummary: 'Parece uma boa ideia.', estimatedCost: 'R$ 50.000', projectedRevenueIncrease: '15%', estimatedROI: '25%', risksAndConsiderations: [] });
-export const getManagementReport = async (): Promise<ManagementReport | null> => mockResponse(null);
-export const generatePersonas = async (audienceDescription: string): Promise<{ personas: Persona[] }> => mockResponse({ personas: [] });
-export const createPersonaFromAudience = async (audience: CustomAudience): Promise<Persona> => mockResponse({} as Persona);
-export const generateDailyItinerary = async (guestInterests: string[], todaysEvents: any[]): Promise<any> => mockResponse({ morning: {}, afternoon: {}, night: {} });
-export const executeSynapseCommand = async (command: string, userId: string, userName: string, db: DBState): Promise<void> => { const agentMessage: SynapseMessage = { id: `syn_${Date.now()}`, sender: 'agent', text: `Comando "${command}" recebido, mas a execução real não está implementada.`, timestamp: new Date().toISOString() }; db.synapseChatHistory.push(agentMessage); };
 
+// Other AI function mocks/placeholders...
+export const generateImage = async (prompt: string, aspectRatio: string): Promise<{ base64Image: string } | null> => mockResponse({ base64Image: '' });
+export const generateDailyBriefing = async (): Promise<DailyBriefing> => mockResponse({ summary: { title: "Briefing Simulado", points: ["Backend online, API Key ausente."] }, attentionPoints: { title: "Atenção", points: [] }, proactiveSuggestions: { title: "Sugestões", points: [] } });
 
 // --- SERVER ---
 const app = express();
@@ -182,13 +130,7 @@ app.post('/auth/login', (req: Request, res: Response) => {
     if (guestUser) return res.json({ user: guestUser, token: `guest-token-${guestUser.id}` });
     res.status(401).json({ message: "Email ou senha inválidos." });
 });
-app.put('/rooms/:id/status', (req: Request, res: Response) => {
-    const { id } = req.params;
-    const { status } = req.body;
-    const room = db.rooms.find(r => r.id === parseInt(id));
-    if (room) { room.status = status as RoomStatus; res.status(200).json(room); } 
-    else { res.status(404).send('Room not found'); }
-});
+// Add other simple CRUD or logic endpoints here
 app.post('/bookings/new-guest', (req: Request, res: Response) => {
     const { booking, guest: guestData } = req.body;
     const newGuest: Guest = { id: `G${Date.now()}`, ...guestData };
@@ -197,29 +139,16 @@ app.post('/bookings/new-guest', (req: Request, res: Response) => {
     db.bookings.push(newBooking);
     res.status(201).json({ booking: newBooking, guest: newGuest });
 });
+
 // Generic AI handler
 const handleAiRequest = async (handler: () => Promise<any>, res: Response) => {
     try { const result = await handler(); res.json(result); } 
     catch (error: any) { console.error("AI handler error:", error); res.status(500).json({ message: error.message || "AI service error" }); }
 };
-// AI routes
-app.post('/ai/daily-briefing', (req: Request, res: Response) => handleAiRequest(() => generateDailyBriefing(db), res));
-app.post('/ai/generate-image', (req: Request, res: Response) => handleAiRequest(() => generateImage(req.body.prompt, req.body.aspectRatio), res));
-app.post('/ai/concierge/:guestId/message', (req: Request, res: Response) => handleAiRequest(() => sendConciergeMessage(req.params.guestId, req.body.message, db), res));
-// Add all other AI endpoints here...
 
-// --- Add other simple endpoints ---
-// Simple CRUD operations can be added here as needed for functionality.
-// Example:
-app.post('/reviews/:id/approve', (req, res) => {
-    const review = db.reviews.find(r => r.id === req.params.id);
-    if(review) {
-        review.status = 'Approved';
-        res.status(200).json(review);
-    } else {
-        res.status(404).json({message: 'Review not found'});
-    }
-});
+// AI routes
+app.post('/ai/daily-briefing', (req: Request, res: Response) => handleAiRequest(() => generateDailyBriefing()));
+app.post('/ai/generate-image', (req: Request, res: Response) => handleAiRequest(() => generateImage(req.body.prompt, req.body.aspectRatio)));
 
 
 export default app;
