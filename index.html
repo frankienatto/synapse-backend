@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Synapse Hospitality</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=Kalam:wght@400;700&display=swap" rel="stylesheet">
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Poppins', 'sans-serif'],
+              script: ['Kalam', 'cursive'],
+            },
+            colors: {
+              'brand-green': '#4CAF50',
+              'brand-green-dark': '#388E3C',
+              'brand-dark': '#1F2937',
+              'brand-light': '#F9FAFB',
+              'brand-secondary': '#6B7280',
+            },
+          },
+        },
+        plugins: [
+            function({ addComponents }) {
+              addComponents({
+                '.input-base': {
+                  '@apply w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-brand-green/50 focus:border-brand-green transition-shadow duration-200 text-gray-800': {},
+                }
+              })
+            }
+        ],
+      };
+    </script>
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@^19.1.0",
+    "react-dom/client": "https://esm.sh/react-dom@^19.1.0/client",
+    "@google/genai": "https://esm.sh/@google/genai@^1.9.0",
+    "lucide-react": "https://esm.sh/lucide-react@^0.525.0",
+    "recharts": "https://esm.sh/recharts@^2.13.0",
+    "@fullcalendar/react": "https://esm.sh/@fullcalendar/react@6.1.15?deps=react@^19,@fullcalendar/core@6.1.15",
+    "@fullcalendar/resource-timeline": "https://esm.sh/@fullcalendar/resource-timeline@6.1.15?deps=react@^19,@fullcalendar/core@6.1.15",
+    "@fullcalendar/interaction": "https://esm.sh/@fullcalendar/interaction@6.1.18",
+    "@vercel/node": "https://esm.sh/@vercel/node@^5.3.6",
+    "react/": "https://esm.sh/react@^19.1.0/",
+    "react-dom/": "https://esm.sh/react-dom@^19.1.0/",
+    "@fullcalendar/core": "https://esm.sh/@fullcalendar/core@^6.1.18"
+  }
+}
+</script>
+</head>
+  <body class="bg-brand-light">
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>
