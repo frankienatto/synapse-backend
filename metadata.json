@@ -1,8 +1,0 @@
-{
-  "name": "Synapse Hospitality SaaS",
-  "description": "A comprehensive, white-label management platform for the hospitality industry (hostels, hotels, resorts), featuring a customizable public site and an administrative dashboard with powerful AI tools.",
-  "requestFramePermissions": [
-    "camera"
-  ],
-  "prompt": ""
-}
